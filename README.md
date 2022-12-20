@@ -1,0 +1,1 @@
+# Casbin Rbatis adapter
