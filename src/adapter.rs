@@ -381,13 +381,13 @@ mod test {
     use core::time;
     use std::thread;
 
-    use crate::casbin_rbatis_adapter::{
+    use crate::{
         actions::{add_policy, remove_policy},
         adapter::CasbinRbatisAdapter,
         tables::CasbinRule,
     };
 
-    //cargo test casbin_rbatis_adapter::adapter::test::test_casbin_rbatis_adapter --  --nocapture
+    //cargo test adapter::test::test_casbin_rbatis_adapter --  --nocapture
     #[test]
     fn test_casbin_rbatis_adapter() {
         println!("test_casbin_rbatis_adapter");
