@@ -14,11 +14,21 @@ pub struct CasbinRbatisAdapter {
 }
 
 impl CasbinRbatisAdapter {
-    pub async fn new(rb: Rbatis) -> Result<Self> {
-        adapter::new(&rb).await.map(|_| Self {
+    ///
+    /// rb: Rbatis实例
+    /// db_sync: 如果casbin_rule表不存在，将自动创建
+    ///
+    pub async fn new(rb: Rbatis, db_sync: bool) -> Result<Self> {
+        let this = Self {
             rbatis: rb.clone(),
             is_filtered: false,
-        })
+        };
+
+        if db_sync {
+            adapter::new(&rb).await.map(|_| this)
+        } else {
+            Ok(this)
+        }
     }
 }
 
@@ -225,40 +235,16 @@ pub(crate) fn save_policy_line(ptype: &str, rule: &[String]) -> Option<CasbinRul
         return None;
     }
 
-    let mut new_rule = CasbinRule {
+    Some(CasbinRule {
         id: None,
         ptype: Some(ptype.to_owned()),
-        v0: Some("".to_owned()),
-        v1: Some("".to_owned()),
-        v2: Some("".to_owned()),
-        v3: Some("".to_owned()),
-        v4: Some("".to_owned()),
-        v5: Some("".to_owned()),
-    };
-
-    new_rule.v0 = Some(rule[0].to_owned());
-
-    if rule.len() > 1 {
-        new_rule.v1 = Some(rule[1].to_owned());
-    }
-
-    if rule.len() > 2 {
-        new_rule.v2 = Some(rule[2].to_owned());
-    }
-
-    if rule.len() > 3 {
-        new_rule.v3 = Some(rule[3].to_owned());
-    }
-
-    if rule.len() > 4 {
-        new_rule.v4 = Some(rule[4].to_owned());
-    }
-
-    if rule.len() > 5 {
-        new_rule.v5 = Some(rule[5].to_owned());
-    }
-
-    Some(new_rule)
+        v0: rule.get(0).cloned().or_else(|| Some("".to_owned())),
+        v1: rule.get(1).cloned().or_else(|| Some("".to_owned())),
+        v2: rule.get(2).cloned().or_else(|| Some("".to_owned())),
+        v3: rule.get(3).cloned().or_else(|| Some("".to_owned())),
+        v4: rule.get(4).cloned().or_else(|| Some("".to_owned())),
+        v5: rule.get(5).cloned().or_else(|| Some("".to_owned())),
+    })
 }
 
 pub(crate) fn load_policy_line(casbin_rule: &CasbinRule) -> Option<Vec<String>> {
@@ -272,52 +258,44 @@ pub(crate) fn load_policy_line(casbin_rule: &CasbinRule) -> Option<Vec<String>> 
 
 pub(crate) fn load_filtered_policy_line(casbin_rule: &CasbinRule, f: &Filter) -> Option<(bool, Vec<String>)> {
     if let Some(ptype) = &casbin_rule.ptype {
-        if let Some(sec) = ptype.chars().next() {
-            if let Some(policy) = normalize_policy(casbin_rule) {
-                let mut is_filtered = true;
-                if sec == 'p' {
-                    for (i, rule) in f.p.iter().enumerate() {
-                        if !rule.is_empty() && rule != &policy[i] {
-                            is_filtered = false
-                        }
+        if let (Some(sec), Some(policy)) = (ptype.chars().next(), normalize_policy(casbin_rule)) {
+            let mut is_filtered = true;
+            if sec == 'p' {
+                for (i, rule) in f.p.iter().enumerate() {
+                    if !rule.is_empty() && rule != &policy[i] {
+                        is_filtered = false
                     }
-                } else if sec == 'g' {
-                    for (i, rule) in f.g.iter().enumerate() {
-                        if !rule.is_empty() && rule != &policy[i] {
-                            is_filtered = false
-                        }
-                    }
-                } else {
-                    return None;
                 }
-                return Some((is_filtered, policy));
+            } else if sec == 'g' {
+                for (i, rule) in f.g.iter().enumerate() {
+                    if !rule.is_empty() && rule != &policy[i] {
+                        is_filtered = false
+                    }
+                }
+            } else {
+                return None;
             }
+            return Some((is_filtered, policy));
         }
     }
     None
 }
 
 fn normalize_policy(casbin_rule: &CasbinRule) -> Option<Vec<String>> {
-    let mut result = vec!["".to_string(), "".to_string(), "".to_string(), "".to_string(), "".to_string(), "".to_string()];
-
-    if let Some(v0) = casbin_rule.v0.clone() {
-        result[0] = v0;
-    }
-    if let Some(v1) = casbin_rule.v1.clone() {
-        result[1] = v1;
-    }
-    if let Some(v2) = casbin_rule.v2.clone() {
-        result[2] = v2;
-    }
-    if let Some(v3) = casbin_rule.v3.clone() {
-        result[3] = v3
-    }
-    if let Some(v4) = casbin_rule.v4.clone() {
-        result[4] = v4
-    }
-    if let Some(v5) = casbin_rule.v5.clone() {
-        result[5] = v5
-    }
+    let mut result = vec![
+        casbin_rule.v0.clone(),
+        casbin_rule.v1.clone(),
+        casbin_rule.v2.clone(),
+        casbin_rule.v3.clone(),
+        casbin_rule.v4.clone(),
+        casbin_rule.v5.clone(),
+    ]
+    .iter()
+    .map(|vn| match vn {
+        Some(vn) => vn.clone(),
+        None => String::new(),
+    })
+    .collect::<Vec<String>>();
 
     while let Some(last) = result.last() {
         if last.is_empty() {
@@ -375,7 +353,7 @@ mod test {
             let pool = rb.get_pool().map_err(|err| CasbinError::from(AdapterError(Box::new(err)))).unwrap();
             pool.resize(3);
 
-            let mut cra = CasbinRbatisAdapter::new(rb).await.unwrap();
+            let mut cra = CasbinRbatisAdapter::new(rb, true).await.unwrap();
             println!("casbin adapter is {:?}", cra);
             {
                 let rs = add_policy(&mut cra.rbatis, rule.clone()).await;

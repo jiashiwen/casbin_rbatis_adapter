@@ -1,6 +1,7 @@
 use casbin::error::AdapterError;
 use casbin::error::Error as CasbinError;
 use casbin::Result;
+use rbatis::executor::Executor;
 use rbatis::py_sql;
 use rbatis::Rbatis;
 use rbs::to_value;
@@ -75,54 +76,30 @@ pub(crate) async fn save_policy(rb: &Rbatis, rules: Vec<CasbinRule>) -> Result<(
     Ok(())
 }
 
-// ToDo 修改为html动态sql
-pub async fn remove_policy(rb: &Rbatis, pt: &str, rule: Vec<String>) -> Result<bool> {
-    let normal_rule = normalize_casbin_rule(rule, 0);
+#[py_sql(
+    "`delete from casbin_rule`
+        where:
+            for k,rule in rules:
+                ` ptype = #{ptype}`
+                for key,item in rule:
+                    ` and v${key} = #{item}` "
+)]
+async fn remove_policies_sql(rb: &mut dyn Executor, ptype: &str, rules: &Vec<Vec<String>>) -> rbatis::Result<bool> {}
 
-    rb.fetch_decode::<bool>(
-        "delete from casbin_rule where ptype = ? and v0 = ? and v1 = ? and v2 = ? and v3 = ? and v4 = ? and v5 = ?;",
-        vec![
-            to_value!(pt.to_string()),
-            to_value!(normal_rule[0].clone()),
-            to_value!(normal_rule[1].clone()),
-            to_value!(normal_rule[2].clone()),
-            to_value!(normal_rule[3].clone()),
-            to_value!(normal_rule[4].clone()),
-            to_value!(normal_rule[5].clone()),
-        ],
-    )
-    .await
-    .map_err(|err| CasbinError::from(AdapterError(Box::new(err))))
+pub async fn remove_policy(rb: &Rbatis, pt: &str, rule: Vec<String>) -> Result<bool> {
+    remove_policies(rb, pt, vec![rule]).await
 }
 
 pub async fn remove_policies(rb: &Rbatis, pt: &str, rules: Vec<Vec<String>>) -> Result<bool> {
-    let mut tx = rb.acquire_begin().await.map_err(|err| CasbinError::from(AdapterError(Box::new(err))))?;
+    let mut normal_rules = vec![];
 
     for rule in rules {
-        let normal_rule = normalize_casbin_rule(rule, 0);
-        tx.fetch_decode(
-            "DELETE FROM casbin_rule WHERE  ptype = ? AND  
-            v0 = ? AND 
-            v1 = ? AND 
-            v2 = ? AND  
-            v3 = ? AND 
-            v4 = ? AND 
-            v5 = ?",
-            vec![
-                to_value!(pt.to_string()),
-                to_value!(normal_rule[0].clone()),
-                to_value!(normal_rule[1].clone()),
-                to_value!(normal_rule[2].clone()),
-                to_value!(normal_rule[3].clone()),
-                to_value!(normal_rule[4].clone()),
-                to_value!(normal_rule[5].clone()),
-            ],
-        )
-        .await
-        .map_err(|err| CasbinError::from(AdapterError(Box::new(err))))?;
+        normal_rules.push(normalize_casbin_rule(rule, 0))
     }
-    tx.commit().await.map_err(|err| CasbinError::from(AdapterError(Box::new(err))))
-    // Result::Ok(true)
+
+    remove_policies_sql(&mut rb.clone(), pt, &normal_rules)
+        .await
+        .map_err(|err| CasbinError::from(AdapterError(Box::new(err))))
 }
 
 pub async fn remove_filtered_policy(rb: &Rbatis, pt: &str, field_index: usize, field_values: Vec<String>) -> Result<bool> {
