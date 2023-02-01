@@ -1,7 +1,7 @@
 [package]
 authors = ["Shiwen Jia<jiashiwen126@126.com"]
 name = "casbin-rbatis-adapter"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 license = "Apache-2.0"
 readme = "README.md"
@@ -18,4 +18,6 @@ async-trait = "0.1.60"
 # rbatis integration
 rbs = "0.1.13"
 rbatis = "4.0.43"
+
+[dev-dependencies]
 rbdc-mysql = "0.1.18"

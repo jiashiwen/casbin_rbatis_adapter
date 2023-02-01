@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::adapter::TABLE_NAME;
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CasbinRule {
     pub id: Option<i32>,
@@ -12,4 +14,4 @@ pub struct CasbinRule {
     pub v5: Option<String>,
 }
 
-rbatis::crud!(CasbinRule {}, "casbin_rule");
+rbatis::crud!(CasbinRule {}, TABLE_NAME);

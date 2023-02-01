@@ -1,14 +1,12 @@
 use crate::actions as adapter;
-use async_trait::async_trait;
-use casbin::{error::AdapterError, Adapter, Error as CasbinError, Filter, Model, Result};
-use rbatis::Rbatis;
-use rbdc_mysql::driver::MysqlDriver;
-use crate::tables::CasbinRule;
 use crate::actions::{
-        add_policies, add_policy, clear_policy, load_policy, remove_filtered_policy,
-        remove_policies, remove_policy, save_policy,  
-    
+    add_policies, add_policy, clear_policy, load_policy, remove_filtered_policy, remove_policies,
+    remove_policy, save_policy,
 };
+use crate::tables::CasbinRule;
+use async_trait::async_trait;
+use casbin::{Adapter, Filter, Model, Result};
+use rbatis::Rbatis;
 
 pub const TABLE_NAME: &str = "casbin_rule";
 
@@ -19,16 +17,9 @@ pub struct CasbinRbatisAdapter {
 }
 
 impl CasbinRbatisAdapter {
-    pub async fn new<U: Into<String>>(url: U, pool_size: usize) -> Result<Self> {
-        let rb = Rbatis::new();
-        rb.init(MysqlDriver {}, &url.into())
-            .map_err(|err| CasbinError::from(AdapterError(Box::new(rbatis::Error::from(err)))))?;
-        let pool = rb
-            .get_pool()
-            .map_err(|err| CasbinError::from(AdapterError(Box::new(rbatis::Error::from(err)))))?;
-        pool.resize(pool_size);
+    pub async fn new(rb: Rbatis) -> Result<Self> {
         adapter::new(&rb).await.map(|_| Self {
-            rbatis: rb,
+            rbatis: rb.clone(),
             is_filtered: false,
         })
     }
@@ -381,6 +372,10 @@ mod test {
     use core::time;
     use std::thread;
 
+    use casbin::error::{AdapterError, Error as CasbinError};
+    use rbatis::Rbatis;
+    use rbdc_mysql::driver::MysqlDriver;
+
     use crate::{
         actions::{add_policy, remove_policy},
         adapter::CasbinRbatisAdapter,
@@ -405,7 +400,18 @@ mod test {
                 v4: Some("".to_string()),
                 v5: Some("".to_string()),
             };
-            let mut cra = CasbinRbatisAdapter::new(url, 3).await.unwrap();
+
+            let rb = Rbatis::new();
+            rb.init(MysqlDriver {}, url)
+                .map_err(|err| CasbinError::from(AdapterError(Box::new(err))))
+                .unwrap();
+            let pool = rb
+                .get_pool()
+                .map_err(|err| CasbinError::from(AdapterError(Box::new(err))))
+                .unwrap();
+            pool.resize(3);
+
+            let mut cra = CasbinRbatisAdapter::new(rb).await.unwrap();
             println!("casbin adapter is {:?}", cra);
             {
                 let rs = add_policy(&mut cra.rbatis, rule.clone()).await;
@@ -417,7 +423,7 @@ mod test {
             }
             thread::sleep(time::Duration::from_secs(4));
             let remove_rs = remove_policy(
-                &mut cra.rbatis,
+                &cra.rbatis,
                 "p",
                 vec!["bob".to_string(), "data".to_string(), "read".to_string()],
             )
