@@ -1,8 +1,5 @@
 use crate::actions as adapter;
-use crate::actions::{
-    add_policies, add_policy, clear_policy, load_policy, remove_filtered_policy, remove_policies,
-    remove_policy, save_policy,
-};
+use crate::actions::{add_policies, add_policy, clear_policy, load_policy, remove_filtered_policy, remove_policies, remove_policy, save_policy};
 use crate::tables::CasbinRule;
 use async_trait::async_trait;
 use casbin::{Adapter, Filter, Model, Result};
@@ -67,6 +64,7 @@ impl Adapter for CasbinRbatisAdapter {
         }
         Result::Ok(())
     }
+
     async fn load_filtered_policy<'a>(&mut self, m: &mut dyn Model, f: Filter<'a>) -> Result<()> {
         // #[cfg(feature = "runtime-tokio")]
         // let rules = spawn_blocking(move || adapter::load_policy(conn))
@@ -99,6 +97,7 @@ impl Adapter for CasbinRbatisAdapter {
 
         Result::Ok(())
     }
+
     async fn save_policy(&mut self, m: &mut dyn Model) -> Result<()> {
         // let conn = self
         //     .pool
@@ -109,10 +108,7 @@ impl Adapter for CasbinRbatisAdapter {
 
         if let Some(ast_map) = m.get_model().get("p") {
             for (ptype, ast) in ast_map {
-                let new_rules = ast
-                    .get_policy()
-                    .into_iter()
-                    .filter_map(|x: &Vec<String>| save_policy_line(ptype, x));
+                let new_rules = ast.get_policy().into_iter().filter_map(|x: &Vec<String>| save_policy_line(ptype, x));
 
                 rules.extend(new_rules);
             }
@@ -120,10 +116,7 @@ impl Adapter for CasbinRbatisAdapter {
 
         if let Some(ast_map) = m.get_model().get("g") {
             for (ptype, ast) in ast_map {
-                let new_rules = ast
-                    .get_policy()
-                    .into_iter()
-                    .filter_map(|x: &Vec<String>| save_policy_line(ptype, x));
+                let new_rules = ast.get_policy().into_iter().filter_map(|x: &Vec<String>| save_policy_line(ptype, x));
 
                 rules.extend(new_rules);
             }
@@ -162,9 +155,11 @@ impl Adapter for CasbinRbatisAdapter {
         clear_policy(&self.rbatis).await?;
         Result::Ok(())
     }
+
     fn is_filtered(&self) -> bool {
         false
     }
+
     async fn add_policy(&mut self, _sec: &str, ptype: &str, rule: Vec<String>) -> Result<bool> {
         // let conn = self
         //     .pool
@@ -202,16 +197,8 @@ impl Adapter for CasbinRbatisAdapter {
         Result::Ok(true)
     }
 
-    async fn add_policies(
-        &mut self,
-        _sec: &str,
-        ptype: &str,
-        rules: Vec<Vec<String>>,
-    ) -> Result<bool> {
-        let new_rules = rules
-            .iter()
-            .filter_map(|x| save_policy_line(ptype, x))
-            .collect::<Vec<CasbinRule>>();
+    async fn add_policies(&mut self, _sec: &str, ptype: &str, rules: Vec<Vec<String>>) -> Result<bool> {
+        let new_rules = rules.iter().filter_map(|x| save_policy_line(ptype, x)).collect::<Vec<CasbinRule>>();
 
         add_policies(&self.rbatis, new_rules).await
     }
@@ -220,21 +207,11 @@ impl Adapter for CasbinRbatisAdapter {
         remove_policy(&self.rbatis, ptype, rule).await
     }
 
-    async fn remove_policies(
-        &mut self,
-        _sec: &str,
-        ptype: &str,
-        rules: Vec<Vec<String>>,
-    ) -> Result<bool> {
+    async fn remove_policies(&mut self, _sec: &str, ptype: &str, rules: Vec<Vec<String>>) -> Result<bool> {
         remove_policies(&self.rbatis, ptype, rules).await
     }
-    async fn remove_filtered_policy(
-        &mut self,
-        _sec: &str,
-        ptype: &str,
-        field_index: usize,
-        field_values: Vec<String>,
-    ) -> Result<bool> {
+
+    async fn remove_filtered_policy(&mut self, _sec: &str, ptype: &str, field_index: usize, field_values: Vec<String>) -> Result<bool> {
         if field_index <= 5 && !field_values.is_empty() && field_values.len() > field_index {
             remove_filtered_policy(&self.rbatis, ptype, field_index, field_values).await
         } else {
@@ -293,10 +270,7 @@ pub(crate) fn load_policy_line(casbin_rule: &CasbinRule) -> Option<Vec<String>> 
     None
 }
 
-pub(crate) fn load_filtered_policy_line(
-    casbin_rule: &CasbinRule,
-    f: &Filter,
-) -> Option<(bool, Vec<String>)> {
+pub(crate) fn load_filtered_policy_line(casbin_rule: &CasbinRule, f: &Filter) -> Option<(bool, Vec<String>)> {
     if let Some(ptype) = &casbin_rule.ptype {
         if let Some(sec) = ptype.chars().next() {
             if let Some(policy) = normalize_policy(casbin_rule) {
@@ -324,14 +298,7 @@ pub(crate) fn load_filtered_policy_line(
 }
 
 fn normalize_policy(casbin_rule: &CasbinRule) -> Option<Vec<String>> {
-    let mut result = vec![
-        "".to_string(),
-        "".to_string(),
-        "".to_string(),
-        "".to_string(),
-        "".to_string(),
-        "".to_string(),
-    ];
+    let mut result = vec!["".to_string(), "".to_string(), "".to_string(), "".to_string(), "".to_string(), "".to_string()];
 
     if let Some(v0) = casbin_rule.v0.clone() {
         result[0] = v0;
@@ -386,7 +353,7 @@ mod test {
     #[test]
     fn test_casbin_rbatis_adapter() {
         println!("test_casbin_rbatis_adapter");
-        let url= "mysql://rust_test:Git785230root@mysql-internet-cn-north-1-1221449f8fb94332.rds.jdcloud.com:3306/rust_test";
+        let url = "mysql://rust_test:Git785230root@mysql-internet-cn-north-1-1221449f8fb94332.rds.jdcloud.com:3306/rust_test";
         let rt = tokio::runtime::Runtime::new().unwrap();
 
         rt.block_on(async {
@@ -405,10 +372,7 @@ mod test {
             rb.init(MysqlDriver {}, url)
                 .map_err(|err| CasbinError::from(AdapterError(Box::new(err))))
                 .unwrap();
-            let pool = rb
-                .get_pool()
-                .map_err(|err| CasbinError::from(AdapterError(Box::new(err))))
-                .unwrap();
+            let pool = rb.get_pool().map_err(|err| CasbinError::from(AdapterError(Box::new(err)))).unwrap();
             pool.resize(3);
 
             let mut cra = CasbinRbatisAdapter::new(rb).await.unwrap();
@@ -422,12 +386,7 @@ mod test {
                 let _ = add_policy(&mut cra.rbatis, rule.clone()).await;
             }
             thread::sleep(time::Duration::from_secs(4));
-            let remove_rs = remove_policy(
-                &cra.rbatis,
-                "p",
-                vec!["bob".to_string(), "data".to_string(), "read".to_string()],
-            )
-            .await;
+            let remove_rs = remove_policy(&cra.rbatis, "p", vec!["bob".to_string(), "data".to_string(), "read".to_string()]).await;
             println!("remove result is {:?}", remove_rs);
             // let select_rs = cra
             //     .rbatis
