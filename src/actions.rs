@@ -29,11 +29,7 @@ pub async fn new(rb: &rbatis::Rbatis) -> Result<()> {
                 );
                 CREATE INDEX IF NOT EXISTS {TABLE_NAME}_ptype_idx ON {TABLE_NAME} (ptype);
                 CREATE INDEX IF NOT EXISTS {TABLE_NAME}_v0_idx ON {TABLE_NAME} (v0);
-                CREATE INDEX IF NOT EXISTS {TABLE_NAME}_v1_idx ON {TABLE_NAME} (v1);
-                CREATE INDEX IF NOT EXISTS {TABLE_NAME}_v2_idx ON {TABLE_NAME} (v2);
-                CREATE INDEX IF NOT EXISTS {TABLE_NAME}_v3_idx ON {TABLE_NAME} (v3);
-                CREATE INDEX IF NOT EXISTS {TABLE_NAME}_v4_idx ON {TABLE_NAME} (v4);
-                CREATE INDEX IF NOT EXISTS {TABLE_NAME}_v5_idx ON {TABLE_NAME} (v5);
+                CREATE INDEX IF NOT EXISTS {TABLE_NAME}_merge_idx ON {TABLE_NAME} (ptype, v0, v1, v2, v3, v4, v5);
             ",
         )
     } else {
