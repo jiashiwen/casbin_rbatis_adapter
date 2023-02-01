@@ -84,7 +84,7 @@ pub(crate) async fn save_policy(rb: &Rbatis, rules: Vec<CasbinRule>) -> Result<(
                 for key,item in rule:
                     ` and v${key} = #{item}` "
 )]
-async fn remove_policies_sql(rb: &mut dyn Executor, ptype: &str, rules: &Vec<Vec<String>>) -> rbatis::Result<bool> {}
+async fn remove_policies_sql(rb: &mut dyn Executor, ptype: &str, rules: &Vec<Vec<String>>) -> rbatis::Result<()> {}
 
 pub async fn remove_policy(rb: &Rbatis, pt: &str, rule: Vec<String>) -> Result<bool> {
     remove_policies(rb, pt, vec![rule]).await
@@ -100,6 +100,7 @@ pub async fn remove_policies(rb: &Rbatis, pt: &str, rules: Vec<Vec<String>>) -> 
     remove_policies_sql(&mut rb.clone(), pt, &normal_rules)
         .await
         .map_err(|err| CasbinError::from(AdapterError(Box::new(err))))
+        .and_then(|_| Ok(true))
 }
 
 pub async fn remove_filtered_policy(rb: &Rbatis, pt: &str, field_index: usize, field_values: Vec<String>) -> Result<bool> {
