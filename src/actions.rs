@@ -24,7 +24,8 @@ pub async fn new(rb: &rbatis::Rbatis) -> Result<()> {
                     v2 varchar(128) NOT NULL,
                     v3 varchar(128) NOT NULL,
                     v4 varchar(128) NOT NULL,
-                    v5 varchar(128) NOT NULL
+                    v5 varchar(128) NOT NULL,
+                    CONSTRAINT unique_key_casbin_rbatis_adapter UNIQUE(ptype, v0, v1, v2, v3, v4, v5)
                 );
                 CREATE INDEX IF NOT EXISTS {TABLE_NAME}_ptype_idx ON {TABLE_NAME} (ptype);
                 CREATE INDEX IF NOT EXISTS {TABLE_NAME}_v0_idx ON {TABLE_NAME} (v0);
