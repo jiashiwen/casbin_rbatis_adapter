@@ -16,18 +16,24 @@ pub async fn new(rb: &rbatis::Rbatis) -> Result<()> {
     let sql_statment = if "postgres" == driver_type {
         format!(
             "
-                CREATE TABLE IF NOT EXISTS {} (
+                CREATE TABLE IF NOT EXISTS {TABLE_NAME} (
                     id bigserial PRIMARY KEY,
-                    ptype character(12) NOT NULL,
-                    v0 character(128) NOT NULL,
-                    v1 character(128) NOT NULL,
-                    v2 character(128) NOT NULL,
-                    v3 character(128) NOT NULL,
-                    v4 character(128) NOT NULL,
-                    v5 character(128) NOT NULL
-                )
+                    ptype varchar(12) NOT NULL,
+                    v0 varchar(128) NOT NULL,
+                    v1 varchar(128) NOT NULL,
+                    v2 varchar(128) NOT NULL,
+                    v3 varchar(128) NOT NULL,
+                    v4 varchar(128) NOT NULL,
+                    v5 varchar(128) NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS {TABLE_NAME}_ptype_idx ON {TABLE_NAME} (ptype);
+                CREATE INDEX IF NOT EXISTS {TABLE_NAME}_v0_idx ON {TABLE_NAME} (v0);
+                CREATE INDEX IF NOT EXISTS {TABLE_NAME}_v1_idx ON {TABLE_NAME} (v1);
+                CREATE INDEX IF NOT EXISTS {TABLE_NAME}_v2_idx ON {TABLE_NAME} (v2);
+                CREATE INDEX IF NOT EXISTS {TABLE_NAME}_v3_idx ON {TABLE_NAME} (v3);
+                CREATE INDEX IF NOT EXISTS {TABLE_NAME}_v4_idx ON {TABLE_NAME} (v4);
+                CREATE INDEX IF NOT EXISTS {TABLE_NAME}_v5_idx ON {TABLE_NAME} (v5);
             ",
-            TABLE_NAME
         )
     } else {
         format!(
