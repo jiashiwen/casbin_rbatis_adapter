@@ -252,7 +252,7 @@ dependencies = [
 
 [[package]]
 name = "casbin-rbatis-adapter"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-trait",
  "casbin",
