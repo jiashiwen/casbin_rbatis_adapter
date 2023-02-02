@@ -35,7 +35,7 @@ pub async fn new(rb: &rbatis::Rbatis) -> Result<()> {
     } else {
         format!(
             "
-                CREATE TABLE IF NOT EXISTS {} (
+                CREATE TABLE IF NOT EXISTS {TABLE_NAME} (
                     id INT NOT NULL AUTO_INCREMENT,
                     ptype VARCHAR(12) NOT NULL,
                     v0 VARCHAR(128) NOT NULL,
@@ -47,8 +47,7 @@ pub async fn new(rb: &rbatis::Rbatis) -> Result<()> {
                     PRIMARY KEY(id),
                     CONSTRAINT unique_key_casbin_rbatis_adapter UNIQUE(ptype, v0, v1, v2, v3, v4, v5)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-            ",
-            TABLE_NAME
+            "
         )
     };
 
@@ -59,7 +58,7 @@ pub async fn new(rb: &rbatis::Rbatis) -> Result<()> {
 
 pub(crate) async fn clear_policy(rb: &Rbatis) -> Result<()> {
     let name = TABLE_NAME.to_string();
-    let sql_statment = format!("delete from {}", name);
+    let sql_statment = format!("delete from {name}");
 
     rb.fetch_decode(sql_statment.as_str(), vec![])
         .await
@@ -103,7 +102,7 @@ pub async fn remove_policies(rb: &Rbatis, pt: &str, rules: Vec<Vec<String>>) -> 
     remove_policies_sql(&mut rb.clone(), pt, &normal_rules)
         .await
         .map_err(|err| CasbinError::from(AdapterError(Box::new(err))))
-        .and_then(|_| Ok(true))
+        .map(|_| true)
 }
 
 pub async fn remove_filtered_policy(rb: &Rbatis, pt: &str, field_index: usize, field_values: Vec<String>) -> Result<bool> {
@@ -233,6 +232,6 @@ mod test {
     fn test_normalize_casbin_rule() {
         let rule = vec!["bob".to_string(), "data2".to_string(), "write".to_string()];
         let new_rule = normalize_casbin_rule(rule, 0);
-        println!("{:?}", new_rule);
+        println!("{new_rule:?}");
     }
 }

@@ -354,10 +354,10 @@ mod test {
             pool.resize(3);
 
             let mut cra = CasbinRbatisAdapter::new(rb, true).await.unwrap();
-            println!("casbin adapter is {:?}", cra);
+            println!("casbin adapter is {cra:?}");
             {
                 let rs = add_policy(&mut cra.rbatis, rule.clone()).await;
-                println!("add result: {:?}", rs);
+                println!("add result: {rs:?}");
             }
             {
                 rule.v0 = Some("Jesica".to_string());
@@ -365,7 +365,7 @@ mod test {
             }
             thread::sleep(time::Duration::from_secs(4));
             let remove_rs = remove_policy(&cra.rbatis, "p", vec!["bob".to_string(), "data".to_string(), "read".to_string()]).await;
-            println!("remove result is {:?}", remove_rs);
+            println!("remove result is {remove_rs:?}");
             // let select_rs = cra
             //     .rbatis
             //     .clone()
