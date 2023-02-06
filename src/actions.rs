@@ -1,6 +1,8 @@
 use casbin::error::AdapterError;
 use casbin::error::Error as CasbinError;
 use casbin::Result;
+use rbatis::executor::Executor;
+use rbatis::py_sql;
 use rbatis::Rbatis;
 use rbs::to_value;
 
@@ -11,28 +13,29 @@ use crate::tables::CasbinRule;
 pub async fn new(rb: &rbatis::Rbatis) -> Result<()> {
     let driver_type = rb.driver_type().unwrap();
 
-    println!("{driver_type:?}");
-
     let sql_statment = if "postgres" == driver_type {
         format!(
             "
-                CREATE TABLE IF NOT EXISTS {} (
+                CREATE TABLE IF NOT EXISTS {TABLE_NAME} (
                     id bigserial PRIMARY KEY,
-                    ptype character(12) NOT NULL,
-                    v0 character(128) NOT NULL,
-                    v1 character(128) NOT NULL,
-                    v2 character(128) NOT NULL,
-                    v3 character(128) NOT NULL,
-                    v4 character(128) NOT NULL,
-                    v5 character(128) NOT NULL
-                )
+                    ptype varchar(12) NOT NULL,
+                    v0 varchar(128) NOT NULL,
+                    v1 varchar(128) NOT NULL,
+                    v2 varchar(128) NOT NULL,
+                    v3 varchar(128) NOT NULL,
+                    v4 varchar(128) NOT NULL,
+                    v5 varchar(128) NOT NULL,
+                    CONSTRAINT unique_key_casbin_rbatis_adapter UNIQUE(ptype, v0, v1, v2, v3, v4, v5)
+                );
+                CREATE INDEX IF NOT EXISTS {TABLE_NAME}_ptype_idx ON {TABLE_NAME} (ptype);
+                CREATE INDEX IF NOT EXISTS {TABLE_NAME}_v0_idx ON {TABLE_NAME} (v0);
+                CREATE INDEX IF NOT EXISTS {TABLE_NAME}_merge_idx ON {TABLE_NAME} (ptype, v0, v1, v2, v3, v4, v5);
             ",
-            TABLE_NAME
         )
     } else {
         format!(
             "
-                CREATE TABLE IF NOT EXISTS {} (
+                CREATE TABLE IF NOT EXISTS {TABLE_NAME} (
                     id INT NOT NULL AUTO_INCREMENT,
                     ptype VARCHAR(12) NOT NULL,
                     v0 VARCHAR(128) NOT NULL,
@@ -44,8 +47,7 @@ pub async fn new(rb: &rbatis::Rbatis) -> Result<()> {
                     PRIMARY KEY(id),
                     CONSTRAINT unique_key_casbin_rbatis_adapter UNIQUE(ptype, v0, v1, v2, v3, v4, v5)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-            ",
-            TABLE_NAME
+            "
         )
     };
 
@@ -56,7 +58,7 @@ pub async fn new(rb: &rbatis::Rbatis) -> Result<()> {
 
 pub(crate) async fn clear_policy(rb: &Rbatis) -> Result<()> {
     let name = TABLE_NAME.to_string();
-    let sql_statment = format!("delete from {}", name);
+    let sql_statment = format!("delete from {name}");
 
     rb.fetch_decode(sql_statment.as_str(), vec![])
         .await
@@ -65,92 +67,50 @@ pub(crate) async fn clear_policy(rb: &Rbatis) -> Result<()> {
 }
 
 pub(crate) async fn save_policy(rb: &Rbatis, rules: Vec<CasbinRule>) -> Result<()> {
-    let mut tx = rb
-        .acquire_begin()
-        .await
-        .map_err(|err| CasbinError::from(AdapterError(Box::new(err))))?;
+    let mut tx = rb.acquire_begin().await.map_err(|err| CasbinError::from(AdapterError(Box::new(err))))?;
 
     for rule in rules {
         CasbinRule::insert(&mut tx, &rule)
             .await
             .map_err(|err| CasbinError::from(AdapterError(Box::new(err))))?;
     }
-    tx.commit()
-        .await
-        .map_err(|err| CasbinError::from(AdapterError(Box::new(err))))?;
+    tx.commit().await.map_err(|err| CasbinError::from(AdapterError(Box::new(err))))?;
     Ok(())
 }
 
-// ToDo 修改为html动态sql
-pub async fn remove_policy(rb: &Rbatis, pt: &str, rule: Vec<String>) -> Result<bool> {
-    let normal_rule = normalize_casbin_rule(rule, 0);
+#[py_sql(
+    "`delete from casbin_rule`
+        where:
+            for k,rule in rules:
+                ` ptype = #{ptype}`
+                for key,item in rule:
+                    ` and v${key} = #{item}` "
+)]
+async fn remove_policies_sql(rb: &mut dyn Executor, ptype: &str, rules: &Vec<Vec<String>>) -> rbatis::Result<()> {}
 
-    rb
-        .fetch_decode::<bool>(
-            "delete from casbin_rule where ptype = ? and v0 = ? and v1 = ? and v2 = ? and v3 = ? and v4 = ? and v5 = ?;",
-               vec![
-                to_value!(pt.to_string()),
-                to_value!(normal_rule[0].clone()),
-                to_value!(normal_rule[1].clone()),
-                to_value!(normal_rule[2].clone()),
-                to_value!(normal_rule[3].clone()),
-                to_value!(normal_rule[4].clone()),
-                to_value!(normal_rule[5].clone()),
-            ],
-        )
-        .await
-        .map_err(|err| CasbinError::from(AdapterError(Box::new(err))))
+pub async fn remove_policy(rb: &Rbatis, pt: &str, rule: Vec<String>) -> Result<bool> {
+    remove_policies(rb, pt, vec![rule]).await
 }
 
 pub async fn remove_policies(rb: &Rbatis, pt: &str, rules: Vec<Vec<String>>) -> Result<bool> {
-    let mut tx = rb
-        .acquire_begin()
-        .await
-        .map_err(|err| CasbinError::from(AdapterError(Box::new(err))))?;
+    let mut normal_rules = vec![];
 
     for rule in rules {
-        let normal_rule = normalize_casbin_rule(rule, 0);
-        tx.fetch_decode(
-            "DELETE FROM casbin_rule WHERE  ptype = ? AND  
-            v0 = ? AND 
-            v1 = ? AND 
-            v2 = ? AND  
-            v3 = ? AND 
-            v4 = ? AND 
-            v5 = ?",
-            vec![
-                to_value!(pt.to_string()),
-                to_value!(normal_rule[0].clone()),
-                to_value!(normal_rule[1].clone()),
-                to_value!(normal_rule[2].clone()),
-                to_value!(normal_rule[3].clone()),
-                to_value!(normal_rule[4].clone()),
-                to_value!(normal_rule[5].clone()),
-            ],
-        )
-        .await
-        .map_err(|err| CasbinError::from(AdapterError(Box::new(err))))?;
+        normal_rules.push(normalize_casbin_rule(rule, 0))
     }
-    tx.commit()
+
+    remove_policies_sql(&mut rb.clone(), pt, &normal_rules)
         .await
         .map_err(|err| CasbinError::from(AdapterError(Box::new(err))))
-    // Result::Ok(true)
+        .map(|_| true)
 }
 
-pub async fn remove_filtered_policy(
-    rb: &Rbatis,
-    pt: &str,
-    field_index: usize,
-    field_values: Vec<String>,
-) -> Result<bool> {
+pub async fn remove_filtered_policy(rb: &Rbatis, pt: &str, field_index: usize, field_values: Vec<String>) -> Result<bool> {
     let field_values = normalize_casbin_rule(field_values, field_index);
 
     let (sql, parameters) = if field_index == 5 {
         let sql = "DELETE FROM casbin_rule WHERE ptype = ? AND (v5 is NULL OR v5 = COALESCE(?,v5))";
-        let p = vec![
-            to_value!(pt.to_string()),
-            to_value!(field_values[0].to_string()),
-        ];
+        let p = vec![to_value!(pt.to_string()), to_value!(field_values[0].to_string())];
         (sql, p)
     } else if field_index == 4 {
         let sql = "DELETE FROM casbin_rule WHERE
@@ -235,9 +195,7 @@ pub async fn remove_filtered_policy(
 }
 
 pub(crate) async fn load_policy(rb: &mut Rbatis) -> Result<Vec<CasbinRule>> {
-    let vec_rules = CasbinRule::select_all(rb)
-        .await
-        .map_err(|err| CasbinError::from(AdapterError(Box::new(err))))?;
+    let vec_rules = CasbinRule::select_all(rb).await.map_err(|err| CasbinError::from(AdapterError(Box::new(err))))?;
     Result::Ok(vec_rules)
 }
 
@@ -249,19 +207,14 @@ pub(crate) async fn add_policy(rb: &mut Rbatis, new_rule: CasbinRule) -> Result<
 }
 
 pub(crate) async fn add_policies(rb: &Rbatis, rules: Vec<CasbinRule>) -> Result<bool> {
-    let mut tx = rb
-        .acquire_begin()
-        .await
-        .map_err(|err| CasbinError::from(AdapterError(Box::new(err))))?;
+    let mut tx = rb.acquire_begin().await.map_err(|err| CasbinError::from(AdapterError(Box::new(err))))?;
 
     for rule in rules {
         CasbinRule::insert(&mut tx, &rule)
             .await
             .map_err(|err| CasbinError::from(AdapterError(Box::new(err))))?;
     }
-    tx.commit()
-        .await
-        .map_err(|err| CasbinError::from(AdapterError(Box::new(err))))
+    tx.commit().await.map_err(|err| CasbinError::from(AdapterError(Box::new(err))))
 }
 
 fn normalize_casbin_rule(mut rule: Vec<String>, field_index: usize) -> Vec<String> {
@@ -279,6 +232,6 @@ mod test {
     fn test_normalize_casbin_rule() {
         let rule = vec!["bob".to_string(), "data2".to_string(), "write".to_string()];
         let new_rule = normalize_casbin_rule(rule, 0);
-        println!("{:?}", new_rule);
+        println!("{new_rule:?}");
     }
 }

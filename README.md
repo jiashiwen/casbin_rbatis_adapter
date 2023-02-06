@@ -3,7 +3,8 @@
 ## Get started
 ```rust
 RB.init(DatabaseDriver {}, database_url).expect("[abs_admin] rbatis pool init fail!");
-let rb_casbin = CasbinRbatisAdapter::new(RB.clone()).await?;
+
+let rb_casbin = CasbinRbatisAdapter::new(RB.clone(), true).await?;
 let mut e = Enforcer::new("acl.conf", rb_casbin).await?;
 
 let sub = "alice"; // the user that wants to access a resource.
