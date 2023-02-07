@@ -14,10 +14,12 @@ pub struct CasbinRbatisAdapter {
 }
 
 impl CasbinRbatisAdapter {
-    ///
-    /// rb: Rbatis实例
-    /// db_sync: 如果casbin_rule表不存在，将自动创建
-    ///
+    /**
+
+    rb: Rbatis实例
+    db_sync: 如果casbin_rule表不存在，将自动创建
+
+    */
     pub async fn new(rb: Rbatis, db_sync: bool) -> Result<Self> {
         let this = Self {
             rbatis: rb.clone(),

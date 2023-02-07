@@ -21,3 +21,7 @@ rbatis = "4.0.43"
 
 [dev-dependencies]
 rbdc-mysql = "0.1.18"
+
+[[example]]
+name = "mysql_sample"
+path = "examples/mysql_sample.rs"
