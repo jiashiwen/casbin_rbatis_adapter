@@ -1,6 +1,6 @@
 [package]
 authors = ["Shiwen Jia<jiashiwen126@126.com"]
-name = "casbin-rbatis-adapter"
+name = "casbin_rbatis_adapter"
 version = "0.1.1"
 edition = "2021"
 license = "Apache-2.0"

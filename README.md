@@ -1,6 +1,7 @@
 # Casbin Rbatis adapter
 
 ## Get started
+
 ```rust
 RB.init(DatabaseDriver {}, database_url).expect("[abs_admin] rbatis pool init fail!");
 
@@ -21,3 +22,5 @@ if let Ok(authorized) = e.enforce((sub, obj, act)) {
     // error occurs
 }
 ```
+
+完整示例请参考 examples/mysql_sample.rs
