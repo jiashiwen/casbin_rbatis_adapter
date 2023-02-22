@@ -1,9 +1,5 @@
-use casbin::error::AdapterError;
-use casbin::error::Error as CasbinError;
-use casbin::Result;
-use rbatis::executor::Executor;
-use rbatis::py_sql;
-use rbatis::Rbatis;
+use casbin::{error::AdapterError, error::Error as CasbinError, Result};
+use rbatis::{executor::Executor, py_sql, Rbatis};
 use rbs::to_value;
 
 // use crate::casbin_rbatis_adapter::tables::CasbinRule;
@@ -51,7 +47,7 @@ pub async fn new(rb: &rbatis::Rbatis) -> Result<()> {
         )
     };
 
-    rb.fetch_decode(&sql_statment, vec![])
+    rb.query_decode(&sql_statment, vec![])
         .await
         .map_err(|err| CasbinError::from(AdapterError(Box::new(err))))
 }
@@ -60,7 +56,7 @@ pub(crate) async fn clear_policy(rb: &Rbatis) -> Result<()> {
     let name = TABLE_NAME.to_string();
     let sql_statment = format!("delete from {name}");
 
-    rb.fetch_decode(sql_statment.as_str(), vec![])
+    rb.query_decode(sql_statment.as_str(), vec![])
         .await
         .map_err(|err| CasbinError::from(AdapterError(Box::new(err))))?;
     Result::Ok(())
@@ -189,7 +185,7 @@ pub async fn remove_filtered_policy(rb: &Rbatis, pt: &str, field_index: usize, f
         ];
         (sql, p)
     };
-    rb.fetch_decode::<bool>(sql, parameters)
+    rb.query_decode::<bool>(sql, parameters)
         .await
         .map_err(|err| CasbinError::from(AdapterError(Box::new(err))))
 }
