@@ -12,7 +12,7 @@ description = "Rbatis adapter for casbin-rs."
 
 [dependencies]
 tokio = { version = "1.21.2", features = ["full"] }
-casbin = { version = "2.0.9", default-features = false, features = ["runtime-async-std", "logging", "incremental"] }
+casbin = { version = "2.0.9", default-features = false, features = ["logging", "incremental"] }
 serde = { version = "1.0.147", features = ["derive"] }
 async-trait = "0.1.60"
 # rbatis integration
@@ -25,3 +25,12 @@ rbdc-mysql = "0.1.18"
 [[example]]
 name = "mysql_sample"
 path = "examples/mysql_sample.rs"
+
+[features]
+default=[
+    "runtime-async-std"
+]
+runtime-async-std = ["casbin/runtime-async-std"]
+runtime-tokio = ["casbin/runtime-tokio"]
+
+
