@@ -16,11 +16,11 @@ casbin = { version = "2", default-features = false, features = ["runtime-async-s
 serde = { version = "1", features = ["derive"] }
 async-trait = "0"
 # rbatis integration
-rbs = "0"
+rbs = "4"
 rbatis = "4"
 
 [dev-dependencies]
-rbdc-mysql = "0"
+rbdc-mysql = "4"
 
 [[example]]
 name = "mysql_sample"
