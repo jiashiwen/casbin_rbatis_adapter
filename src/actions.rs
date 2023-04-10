@@ -1,9 +1,5 @@
-use casbin::error::AdapterError;
-use casbin::error::Error as CasbinError;
-use casbin::Result;
-use rbatis::executor::Executor;
-use rbatis::py_sql;
-use rbatis::Rbatis;
+use casbin::{error::AdapterError, error::Error as CasbinError, Result};
+use rbatis::{executor::Executor, py_sql, Rbatis};
 use rbs::to_value;
 
 // use crate::casbin_rbatis_adapter::tables::CasbinRule;

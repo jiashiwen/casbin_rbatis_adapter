@@ -1,7 +1,7 @@
 [package]
 authors = ["Shiwen Jia<jiashiwen126@126.com"]
 name = "casbin_rbatis_adapter"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 license = "Apache-2.0"
 readme = "README.md"
@@ -21,6 +21,7 @@ rbatis = "4.2"
 
 [dev-dependencies]
 rbdc-mysql = "4.2"
+
 
 [[example]]
 name = "mysql_sample"
