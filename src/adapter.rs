@@ -3,13 +3,13 @@ use crate::actions::{add_policies, add_policy, clear_policy, load_policy, remove
 use crate::tables::CasbinRule;
 use async_trait::async_trait;
 use casbin::{Adapter, Filter, Model, Result};
-use rbatis::Rbatis;
+use rbatis::RBatis;
 
 pub const TABLE_NAME: &str = "casbin_rule";
 
 #[derive(Debug)]
 pub struct CasbinRbatisAdapter {
-    rbatis: rbatis::Rbatis,
+    rbatis: rbatis::RBatis,
     is_filtered: bool,
 }
 
@@ -20,7 +20,7 @@ impl CasbinRbatisAdapter {
     db_sync: 如果casbin_rule表不存在，将自动创建
 
     */
-    pub async fn new(rb: Rbatis, db_sync: bool) -> Result<Self> {
+    pub async fn new(rb: RBatis, db_sync: bool) -> Result<Self> {
         let this = Self {
             rbatis: rb.clone(),
             is_filtered: false,
@@ -320,7 +320,7 @@ mod test {
     use std::thread;
 
     use casbin::error::{AdapterError, Error as CasbinError};
-    use rbatis::Rbatis;
+    use rbatis::RBatis;
     use rbdc_mysql::driver::MysqlDriver;
 
     use crate::{
@@ -348,7 +348,7 @@ mod test {
                 v5: Some("".to_string()),
             };
 
-            let rb = Rbatis::new();
+            let rb = RBatis::new();
             rb.init(MysqlDriver {}, url)
                 .map_err(|err| CasbinError::from(AdapterError(Box::new(err))))
                 .unwrap();
