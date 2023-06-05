@@ -17,4 +17,4 @@ mod actions;
 mod adapter;
 mod tables;
 
-pub use adapter::CasbinRbatisAdapter;
+pub use adapter::CasbinRBatisAdapter;

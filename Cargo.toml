@@ -11,24 +11,24 @@ description = "Rbatis adapter for casbin-rs."
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-tokio = { version = "1.26", features = ["full"] }
 casbin = { version = "2.0.9", default-features = false, features = ["logging", "incremental"] }
 serde = { version = "1", features = ["derive"] }
 async-trait = "0.1"
+
 # rbatis integration
-rbs = "4.2"
-rbatis = "4.2"
+rbs = "4.3"
+rbatis = "4.3"
 
 [dev-dependencies]
 rbdc-mysql = "4.2"
-
+tokio = { version = "1", features = ["full"]}
 
 [[example]]
 name = "mysql_sample"
 path = "examples/mysql_sample.rs"
 
 [features]
-default=[
+default = [
     "runtime-async-std"
 ]
 runtime-async-std = ["casbin/runtime-async-std"]
