@@ -1,13 +1,13 @@
 use casbin::{CoreApi, Enforcer};
 use casbin::{RbacApi, Result};
-use casbin_rbatis_adapter::CasbinRbatisAdapter;
-use rbatis::Rbatis;
+use casbin_rbatis_adapter::CasbinRBatisAdapter;
+use rbatis::RBatis;
 use rbdc_mysql::driver::MysqlDriver;
 
 #[tokio::main]
 async fn main() -> Result<()> {
     println!(r#"mysql_sample"#);
-    let rb = Rbatis::new();
+    let rb = RBatis::new();
 
     let mysql_url = "mysql://casbin:Git785230@mysql-internet-cn-east-2-b5cfacbdb6a34fad.rds.jdcloud.com:3306/casbin";
 
@@ -15,7 +15,7 @@ async fn main() -> Result<()> {
     rb.init(MysqlDriver {}, mysql_url).unwrap();
     rb.get_pool().unwrap().resize(10);
 
-    let rb_casbin = CasbinRbatisAdapter::new(rb.clone(), true).await?;
+    let rb_casbin = CasbinRBatisAdapter::new(rb.clone(), true).await?;
     let mut e = Enforcer::new("examples/rbac_model.conf", rb_casbin).await?;
 
     // 添加权限
