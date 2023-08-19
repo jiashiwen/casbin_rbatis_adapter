@@ -1,13 +1,13 @@
 use casbin::{CoreApi, Enforcer};
 use casbin::{RbacApi, Result};
 use casbin_rbatis_adapter::CasbinRbatisAdapter;
-use rbatis::Rbatis;
+use rbatis::RBatis;
 use rbdc_mysql::driver::MysqlDriver;
 
 #[tokio::main]
 async fn main() -> Result<()> {
     println!(r#"mysql_sample"#);
-    let rb = Rbatis::new();
+    let rb = RBatis::new();
 
     let mysql_url = "mysql://casbin:Git785230@mysql-internet-cn-east-2-b5cfacbdb6a34fad.rds.jdcloud.com:3306/casbin";
 

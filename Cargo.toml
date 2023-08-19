@@ -1,7 +1,7 @@
 [package]
 authors = ["Shiwen Jia<jiashiwen126@126.com"]
 name = "casbin_rbatis_adapter"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2021"
 license = "Apache-2.0"
 readme = "README.md"
@@ -11,16 +11,16 @@ description = "Rbatis adapter for casbin-rs."
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-tokio = { version = "1.26", features = ["full"] }
-casbin = { version = "2.0.9", default-features = false, features = ["logging", "incremental"] }
+tokio = { version = "1", features = ["full"] }
+casbin = { version = "2", default-features = false, features = ["logging", "incremental"] }
 serde = { version = "1", features = ["derive"] }
-async-trait = "0.1"
+async-trait = "0"
 # rbatis integration
-rbs = "4.2"
-rbatis = "4.2"
+rbs = "4"
+rbatis = "4"
 
 [dev-dependencies]
-rbdc-mysql = "4.2"
+rbdc-mysql = "4"
 
 
 [[example]]

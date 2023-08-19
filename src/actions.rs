@@ -1,12 +1,12 @@
 use casbin::{error::AdapterError, error::Error as CasbinError, Result};
-use rbatis::{executor::Executor, py_sql, Rbatis};
+use rbatis::{executor::Executor, py_sql, RBatis};
 use rbs::to_value;
 
 // use crate::casbin_rbatis_adapter::tables::CasbinRule;
 use crate::adapter::TABLE_NAME;
 use crate::tables::CasbinRule;
 
-pub async fn new(rb: &rbatis::Rbatis) -> Result<()> {
+pub async fn new(rb: &rbatis::RBatis) -> Result<()> {
     let driver_type = rb.driver_type().unwrap();
 
     let sql_statment = if "postgres" == driver_type {
@@ -52,7 +52,7 @@ pub async fn new(rb: &rbatis::Rbatis) -> Result<()> {
         .map_err(|err| CasbinError::from(AdapterError(Box::new(err))))
 }
 
-pub(crate) async fn clear_policy(rb: &Rbatis) -> Result<()> {
+pub(crate) async fn clear_policy(rb: &RBatis) -> Result<()> {
     let name = TABLE_NAME.to_string();
     let sql_statment = format!("delete from {name}");
 
@@ -62,7 +62,7 @@ pub(crate) async fn clear_policy(rb: &Rbatis) -> Result<()> {
     Result::Ok(())
 }
 
-pub(crate) async fn save_policy(rb: &Rbatis, rules: Vec<CasbinRule>) -> Result<()> {
+pub(crate) async fn save_policy(rb: &RBatis, rules: Vec<CasbinRule>) -> Result<()> {
     let mut tx = rb.acquire_begin().await.map_err(|err| CasbinError::from(AdapterError(Box::new(err))))?;
 
     for rule in rules {
@@ -84,11 +84,11 @@ pub(crate) async fn save_policy(rb: &Rbatis, rules: Vec<CasbinRule>) -> Result<(
 )]
 async fn remove_policies_sql(rb: &mut dyn Executor, ptype: &str, rules: &Vec<Vec<String>>) -> rbatis::Result<()> {}
 
-pub async fn remove_policy(rb: &Rbatis, pt: &str, rule: Vec<String>) -> Result<bool> {
+pub async fn remove_policy(rb: &RBatis, pt: &str, rule: Vec<String>) -> Result<bool> {
     remove_policies(rb, pt, vec![rule]).await
 }
 
-pub async fn remove_policies(rb: &Rbatis, pt: &str, rules: Vec<Vec<String>>) -> Result<bool> {
+pub async fn remove_policies(rb: &RBatis, pt: &str, rules: Vec<Vec<String>>) -> Result<bool> {
     let mut normal_rules = vec![];
 
     for rule in rules {
@@ -101,7 +101,7 @@ pub async fn remove_policies(rb: &Rbatis, pt: &str, rules: Vec<Vec<String>>) -> 
         .map(|_| true)
 }
 
-pub async fn remove_filtered_policy(rb: &Rbatis, pt: &str, field_index: usize, field_values: Vec<String>) -> Result<bool> {
+pub async fn remove_filtered_policy(rb: &RBatis, pt: &str, field_index: usize, field_values: Vec<String>) -> Result<bool> {
     let field_values = normalize_casbin_rule(field_values, field_index);
 
     let (sql, parameters) = if field_index == 5 {
@@ -190,19 +190,19 @@ pub async fn remove_filtered_policy(rb: &Rbatis, pt: &str, field_index: usize, f
         .map_err(|err| CasbinError::from(AdapterError(Box::new(err))))
 }
 
-pub(crate) async fn load_policy(rb: &mut Rbatis) -> Result<Vec<CasbinRule>> {
+pub(crate) async fn load_policy(rb: &mut RBatis) -> Result<Vec<CasbinRule>> {
     let vec_rules = CasbinRule::select_all(rb).await.map_err(|err| CasbinError::from(AdapterError(Box::new(err))))?;
     Result::Ok(vec_rules)
 }
 
-pub(crate) async fn add_policy(rb: &mut Rbatis, new_rule: CasbinRule) -> Result<bool> {
+pub(crate) async fn add_policy(rb: &mut RBatis, new_rule: CasbinRule) -> Result<bool> {
     CasbinRule::insert(rb, &new_rule)
         .await
         .map_err(|err| CasbinError::from(AdapterError(Box::new(err))))?;
     Result::Ok(true)
 }
 
-pub(crate) async fn add_policies(rb: &Rbatis, rules: Vec<CasbinRule>) -> Result<bool> {
+pub(crate) async fn add_policies(rb: &RBatis, rules: Vec<CasbinRule>) -> Result<bool> {
     let mut tx = rb.acquire_begin().await.map_err(|err| CasbinError::from(AdapterError(Box::new(err))))?;
 
     for rule in rules {
